@@ -1,0 +1,6 @@
+numpy>=1.24
+pandas>=2.0
+scipy>=1.11
+matplotlib>=3.7
+requests>=2.31      # only for scripts/fetch_acn.py
+# coptpy>=8.0       # optional: COPT solver used in the paper

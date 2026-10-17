@@ -1,0 +1,98 @@
+brand,model,version,battery_kwh
+Tesla,Model 3,RWD,60.0
+Tesla,Model 3,long range,78.4
+Tesla,Model Y,RWD,62.5
+Tesla,Model Y,long range,78.4
+smart,smart #1,base trim,49.0
+smart,smart #1,top trim,66.0
+smart,smart #3,base trim,49.0
+smart,smart #3,top trim,66.0
+Onvo,L60,standard range,60.0
+Onvo,L60,long range,85.0
+Wuling,Hongguang MINI EV,entry version,9.3
+Wuling,Hongguang MINI EV,mid trim,13.4
+Wuling,Hongguang MINI EV,long range,17.3
+Wuling,Hongguang MINI EV,GAMEBOY,26.5
+Wuling,Bingo,base trim,17.3
+Wuling,Bingo,mid trim,31.9
+Wuling,Bingo,top trim,37.9
+Geely,Xingyuan,base trim,30.12
+Geely,Xingyuan,top trim,40.16
+Geely Galaxy,E5,base trim,49.52
+Geely Galaxy,E5,top trim,60.22
+Volkswagen,ID.3,mainstream version,52.8
+Volkswagen,ID.4 X/CROZZ,base trim,57.3
+Volkswagen,ID.4 X/CROZZ,top trim,83.4
+Volkswagen,ID.6 X/CROZZ,base trim,63.2
+Volkswagen,ID.6 X/CROZZ,top trim,83.4
+BMW,i3,low-capacity variant,70.0
+BMW,i3,high-capacity variant,79.0
+BMW,iX3,mainstream version,80.0
+Xiaomi,SU7,Standard,73.6
+Xiaomi,SU7,Pro,94.3
+Xiaomi,SU7,Max,101.0
+Xiaomi,YU7,Standard/Pro,96.3
+Xiaomi,YU7,Max,101.7
+XPeng,G6,standard range,66.0
+XPeng,G6,long range,87.5
+XPeng,G9,standard range,78.2
+XPeng,G9,long range,98.0
+XPeng,MONA M03,base trim,51.8
+XPeng,MONA M03,top trim,62.2
+XPeng,P7/P7+,low-capacity variant,60.7
+XPeng,P7/P7+,high-capacity variant,86.2
+GAC Aion,AION S,base trim,58.8
+GAC Aion,AION S,top trim,68.2
+GAC Aion,AION Y,base trim,51.9
+GAC Aion,AION Y,mid trim,61.7
+GAC Aion,AION Y,top trim,69.98
+IM Motors,L6,low-capacity variant,75.0
+IM Motors,L6,mid-capacity variant,83.0
+IM Motors,L6,long range,100.0
+IM Motors,L6,extra-long-range variant,133.0
+IM Motors,LS6,low-capacity variant,71.0
+IM Motors,LS6,mid-capacity variant,90.0
+IM Motors,LS6,high-capacity variant,100.0
+Zeekr,001,low-capacity variant,95.0
+Zeekr,001,high-capacity variant,100.0
+Zeekr,007,standard range,75.0
+Zeekr,007,long range,100.0
+Zeekr,7X,standard range,75.0
+Zeekr,7X,long range,100.0
+Zeekr,X,base trim,49.0
+Zeekr,X,top trim,66.0
+BYD,Yuan PLUS,base trim,49.92
+BYD,Yuan PLUS,top trim,60.48
+BYD,Yuan UP,base trim,32.0
+BYD,Yuan UP,top trim,45.12
+BYD,Tang EV,mainstream version,90.3
+BYD,Song PLUS EV,base trim,71.8
+BYD,Song PLUS EV,top trim,87.04
+BYD,Han EV,base trim,60.48
+BYD,Han EV,top trim,85.44
+BYD,Dolphin,base trim,44.9
+BYD,Dolphin,upper-mid trim,58.56
+BYD,Dolphin,long range,60.48
+BYD,Seal,base trim,61.44
+BYD,Seal,long range,82.56
+BYD,Seagull,base trim,30.08
+BYD,Seagull,top trim,38.88
+BYD,Qin PLUS EV,base trim,48.0
+BYD,Qin PLUS EV,top trim,57.6
+Li Auto,MEGA,mainstream version,102.7
+Li Auto,MEGA,high-capacity variant,108.0
+Denza,D9 EV,mainstream version,103.36
+NIO,EC6,75kWh,75.0
+NIO,EC6,100kWh,100.0
+NIO,ES6,75kWh,75.0
+NIO,ES6,100kWh,100.0
+NIO,ET5/ET5T,75kWh,75.0
+NIO,ET5/ET5T,100kWh,100.0
+AITO,M5,BEV,80.0
+Leapmotor,C10 EV,base trim,52.9
+Leapmotor,C10 EV,top trim,69.9
+Leapmotor,C11 EV,base trim,69.2
+Leapmotor,C11 EV,top trim,89.6
+Leapmotor,C16 EV,mainstream version,67.7
+Leapmotor,T03,base trim,31.9
+Leapmotor,T03,top trim,41.3
