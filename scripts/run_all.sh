@@ -116,3 +116,53 @@ for P in 0.25 0.5 1.0; do
   run --ratios 0.4 0.6 0.8 --rules none always cong0 wait --methods B0 RH --no-notice --seeds 30 --set $G behavior.persist=$P --out $O/r11_persist$P.csv   # B.17
 done
 run --rules cong0 cong1 cong2 cong3 cong4 cong6 cong9 always wait --methods B0 RH --seeds 30 --set $G rule.fee_from_full=1 --out $O/r8_full_t11.csv  # B.18
+
+# ---------------------------------------------------------------- Round 16 (Sections 6.5, 6.6, 6.7.3; Appendix B.20)
+# RH-A (first-come, first-served admission with optimized charging) and RH, both with HiGHS at a 1% gap
+python -m ev_overstay.run_experiments --ratios 0.4 0.6 0.8 --rules cong0 --methods RH RH-A --no-notice --seeds 30 --solver highs --jobs $JOBS --out $O/r16_rha_highs.csv
+# RH-A with COPT (0.1% gap; RH itself is in res_methods.csv)
+python -m ev_overstay.run_experiments --ratios 0.4 0.6 0.8 --rules cong0 --methods RH-A --no-notice --seeds 30 --solver copt --jobs $JOBS --set solver.rh_mip_gap=0.001 --out $O/r16_rha.csv
+# RH-A and B0-Q under heavier demand and without a waiting area (RH is in res_n.csv and rev_e11_k0.csv)
+python -m ev_overstay.run_experiments --ns 36 48 --rules cong0 --methods RH-A --seeds 30 --solver copt --jobs $JOBS --set solver.rh_mip_gap=0.001 --out $O/r17_rha_n.csv
+python -m ev_overstay.run_experiments --rules cong0 --methods RH-A --seeds 30 --solver copt --jobs $JOBS --set solver.rh_mip_gap=0.001 station.K=0 --out $O/r17_rha_k0.csv
+python -m ev_overstay.run_experiments --rules cong0 --methods RH-A --seeds 30 --solver copt --jobs $JOBS --set solver.rh_mip_gap=0.001 --out $O/r18_rha_n24.csv
+python -m ev_overstay.run_experiments --ns 24 36 48 --rules cong0 --methods B0-Q --seeds 30 --jobs $JOBS --out $O/r17_b0q_n.csv
+python -m ev_overstay.run_experiments --rules cong0 --methods B0-Q --seeds 30 --jobs $JOBS --set station.K=0 --out $O/r17_b0q_k0.csv
+# unannounced early departures (Section 6.7.5): 30% or 60% of owners leave 0.5 to 2 h before their declared departure
+for e in 0 0.3 0.6; do
+  python -m ev_overstay.run_experiments --rules always cong0 --methods B0 B0-Q --seeds 30 --jobs $JOBS --set demand.early_share=$e --out $O/r19_rb_e$e.csv
+done
+for e in 0.3 0.6; do
+  python -m ev_overstay.run_experiments --rules always cong0 --methods RH --seeds 30 --solver copt --jobs $JOBS --set solver.rh_mip_gap=0.001 demand.early_share=$e --out $O/r19_rh_e$e.csv
+done
+# RH with a safety margin of 1 or 2 h before declared departures
+for b in 1 2; do
+  for e in 0 0.3 0.6; do
+    python -m ev_overstay.run_experiments --rules cong0 --methods RH --seeds 30 --solver copt --jobs $JOBS --set solver.rh_mip_gap=0.001 demand.early_share=$e solver.rh_dep_buffer_h=$b --out $O/r20_rh_b${b}_e$e.csv
+  done
+done
+# early departures of up to 3 h, beyond the 2 h margin
+for e in 0.3 0.6; do
+  python -m ev_overstay.run_experiments --rules cong0 --methods B0 B0-Q --seeds 30 --jobs $JOBS --set demand.early_share=$e demand.early_hi_h=3 --out $O/r21_rb_e$e.csv
+  for b in 0 2; do
+    python -m ev_overstay.run_experiments --rules cong0 --methods RH --seeds 30 --solver copt --jobs $JOBS --set solver.rh_mip_gap=0.001 demand.early_share=$e demand.early_hi_h=3 solver.rh_dep_buffer_h=$b --out $O/r21_rh_b${b}_e$e.csv
+  done
+done
+# owners who move out without a reminder (relaxes A3): hourly probability day/night 0.1/0.02 and 0.3/0.05
+for sp in "1 0.1 0.02" "2 0.3 0.05"; do
+  set -- $sp
+  python -m ev_overstay.run_experiments --rules always cong0 --methods B0 B0-Q --seeds 30 --jobs $JOBS --set behavior.spont_psi_day=$2 behavior.spont_psi_night=$3 --out $O/r22_rb_s$1.csv
+  python -m ev_overstay.run_experiments --rules always cong0 --methods RH --seeds 30 --solver copt --jobs $JOBS --set solver.rh_mip_gap=0.001 behavior.spont_psi_day=$2 behavior.spont_psi_night=$3 --out $O/r22_rh_s$1.csv
+done
+# boundary under RH solved with HiGHS (ratio 0.6, fee notices on)
+python -m ev_overstay.run_experiments --rules always cong0 --methods RH --seeds 30 --solver highs --jobs $JOBS --set behavior.gamma1=0.045 --out $O/r16_hs_g1_0.045.csv
+for g in 0.04 0.0375; do
+  python -m ev_overstay.run_experiments --rules cong0 --methods RH --seeds 30 --solver highs --jobs $JOBS --set behavior.gamma1=$g --out $O/r16_hs_g1_$g.csv
+done
+# boundary under RH solved with COPT at a 1e-6 gap and deterministic tie-breaking (ratio 0.6, fee notices on)
+python -m ev_overstay.run_experiments --rules always cong0 --methods RH --seeds 30 --solver copt --jobs $JOBS --set solver.tb_lex=0.02 solver.rh_mip_gap=1e-6 behavior.gamma1=0.045 --out $O/r16_tb_g1_0.045.csv
+for g in 0.04 0.0375; do
+  python -m ev_overstay.run_experiments --rules cong0 --methods RH --seeds 30 --solver copt --jobs $JOBS --set solver.tb_lex=0.02 solver.rh_mip_gap=1e-6 behavior.gamma1=$g --out $O/r16_tb_g1_$g.csv
+done
+# residential fee rate and fee cap for the rule-based policies
+python scripts/check_feecap.py
