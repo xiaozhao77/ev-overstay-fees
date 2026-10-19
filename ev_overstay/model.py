@@ -99,6 +99,8 @@ class ChargingMILP:
             if vh.status in ('new', 'pseudo'):
                 a = m_.addVar(vtype='B', name=f'a[{j}]')
                 obj += vh.weight * wc.alpha * (1.0 + vh.prio) * a
+                if vh.status == 'new' and getattr(sc.solver, 'rh_accept_bonus', 0.0) > 0:   # RH-A: accept every request that fits (not counted in the reward)
+                    obj += sc.solver.rh_accept_bonus * a
                 if sc.solver.tb_lex > 0 and vh.status == 'new':   # deterministic tie-breaking: prefer earlier requests among equal optima
                     obj += sc.solver.tb_lex * (1.0 - 0.5 * new_rank.get(j, 0) / max(1, len(new_rank))) * a
                 a_eff = a

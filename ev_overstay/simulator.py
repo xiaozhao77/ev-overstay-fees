@@ -71,6 +71,7 @@ class Simulator:
         self.G = self.sc.rule.G(st.tau)
         self.v: List[VState] = [VState(q.j, q.r, q.d, q.b, q.soc0, q.socd, q.D,
                                        prio=getattr(q, 'prio', 0.0), hh=getattr(q, 'hh', -1)) for q in inst.requests]
+        self.da = {q.j: (inst.actual_departure(q.j) if hasattr(inst, 'actual_departure') else q.d) for q in inst.requests}   # actual departure (hidden from policies)
         self.queue: List[int] = []          # waiting order (first-come, first-served)
         self.reserved = {}                  # waiting vehicles assigned a charger whose owner has not yet plugged in: j -> plug-in period (Appendix B.11)
         self.plugged: List[int] = []
@@ -147,8 +148,20 @@ class Simulator:
         for j in list(self.plugged):
             x = self.v[j]
             R = x.R if x.R is not None else x.d
-            if t >= min(R, x.d):
+            if t >= min(R, x.d, self.da[j]):
                 self._release(x, t)
+        # 1b spontaneous move-outs of fully charged, unreminded vehicles (relaxes assumption A3; off by default)
+        bc_ = self.sc.behavior
+        sd_, sn_ = getattr(bc_, 'spont_psi_day', 0.0), getattr(bc_, 'spont_psi_night', 0.0)
+        if sd_ > 0 or sn_ > 0:
+            psi_ = sn_ if bh.is_night(st.clock(t), bc_) else sd_
+            qq = 1.0 - (1.0 - min(psi_, 0.999999)) ** st.tau
+            for j in list(self.plugged):
+                x = self.v[j]
+                if x.full and not x.reminded and x.t_full is not None and t >= x.t_full:
+                    u = np.random.default_rng([int(self.inst.seed), int(j), int(t), 29]).random()
+                    if u < qq:
+                        self._release(x, t)
         # 2 plug-in and abandonment (with plug-in delays, an assigned charger is held until the owner arrives)
         for j in list(self.reserved):
             if t >= self.reserved[j]:
@@ -168,14 +181,14 @@ class Simulator:
                 self.reserved[j] = t + dly
         for j in list(self.queue):
             if j in self.reserved:
-                if t >= self.v[j].d:          # declared departure reached before the owner arrived
+                if t >= min(self.v[j].d, self.da[j]):          # departure reached before the owner arrived
                     del self.reserved[j]
                     self.queue.remove(j)
                     x = self.v[j]
                     x.status, x.left_t, x.outcome = 'gone', t, 'abandoned'
                 continue
             x = self.v[j]
-            if x.q_periods >= st.W_max or t >= x.d:
+            if x.q_periods >= st.W_max or t >= min(x.d, self.da[j]):
                 self.queue.remove(j)
                 x.status, x.left_t, x.outcome = 'gone', t, 'abandoned'
         # 3 admission
@@ -279,12 +292,12 @@ class Simulator:
                     if g < bh.INF:
                         x.R = min(x.R if x.R is not None else x.d, t + g)
                 if t >= x.t_full + self.G and (x.R is None or t < x.R):
-                    x.fee += rc.phi * st.tau
+                    x.fee = x.fee + rc.phi * st.tau if not getattr(rc, 'fee_cap', 0) else min(rc.fee_cap, x.fee + rc.phi * st.tau)
         elif kap and rc.rule != 'none':
             for j in self.plugged:
                 x = self.v[j]
                 if x.reminded and t >= x.fee_start and (x.R is None or t < x.R):
-                    x.fee += rc.phi * st.tau
+                    x.fee = x.fee + rc.phi * st.tau if not getattr(rc, 'fee_cap', 0) else min(rc.fee_cap, x.fee + rc.phi * st.tau)
                     ps = getattr(self.sc.behavior, 'persist', 0.0)
                     if ps > 0:   # persistent response (Appendix B.17): after the grace period, move out with probability persist x p per hour
                         ph = min(1.0, ps * bh.p_comply(t, st, self.sc.behavior, rc))

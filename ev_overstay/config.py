@@ -75,6 +75,11 @@ class DemandConfig:
     soc0_high: float = 0.75
     socd: float = 0.80
     csv: Optional[str] = None         # optional CSV of real requests (arr_hour, dep_hour, battery, soc0) to sample from
+    # unannounced early departures (robustness, Section 6.7): a share of owners leaves earlier than declared, by a uniform
+    # 0.5 to 2 h; the operator plans with the declared departure and learns of the early departure only when the vehicle leaves
+    early_share: float = 0.0
+    early_lo_h: float = 0.5
+    early_hi_h: float = 2.0
 
 
 @dataclass
@@ -95,6 +100,8 @@ class BehaviorConfig:
     gamma3: float = 0.0               # effect of the grace period on compliance (logit rises by gamma3 per additional period)
     plugin_psi_day: float = 0.0       # hourly probability that the owner of a waiting vehicle arrives to plug in once a charger is assigned (day period); 0 = immediate (Appendix B.11)
     plugin_psi_night: float = 0.0     # same, late at night
+    spont_psi_day: float = 0.0        # hourly probability that a fully charged, unreminded owner moves out without a reminder (day period); 0 = assumption A3
+    spont_psi_night: float = 0.0      # the same late at night
     persist: float = 0.0              # persistent response after the grace period (hourly move-out probability = persist x p); 0 = off (Appendix B.17)
     hetero_share: float = 0.0         # heterogeneous owners: this share behaves as S1 (weak), the rest as S3 (strong); policies still plan with this configuration (S2)
 
@@ -127,6 +134,7 @@ class RuleConfig:
     grace_hours: float = 20 / 60      # grace period (h)
     phi: float = 60.0                 # idle fee rate (CNY/h), charged phi*tau per period; 60 CNY/h = 1 CNY/min
     fee_from_full: bool = False       # fee clock from full charge (grace period starts at full charge; unreminded vehicles also pay and receive a fee notice)
+    fee_cap: float = 0.0               # cap on the idle fee per vehicle and night (CNY); 0 = no cap
 
     def G(self, tau: float) -> int:
         return max(1, int(round(self.grace_hours / tau)))
@@ -163,7 +171,9 @@ class SolverConfig:
     tie_eps: float = 0.0              # tie-breaking coefficient for earlier release in the RH window model (per period)
     tb_lex: float = 0.0               # deterministic tie-breaking (>0 enables): prefer earlier requests and earlier charging among equal optima; use with a very small rh_mip_gap
     rh_fcfs: float = 0.0              # >0: the RH window model imposes first-come, first-served plug-in of waiting vehicles (Appendix B.7)
+    rh_dep_buffer_h: float = 0.0      # >0: RH plans as if every vehicle left this many hours before its declared departure (safety margin against early departures, Section 6.7.5)
     rh_scen: int = 5                  # number of sampled future-request scenarios per step in RH-MS (Appendix B.12)
+    rh_accept_bonus: float = 0.0      # set internally by RH-A (accept every request that fits)
 
 
 @dataclass

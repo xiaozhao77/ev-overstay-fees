@@ -40,6 +40,16 @@ class Instance:
     U: Dict[int, np.ndarray]         # U[j]: uniform random numbers of shape (d-r, 4), common random numbers
     V: Dict[int, float] = None       # owner-type random number (fee-insensitive or not)
     V2: Dict[int, float] = None      # owner-type random number (heterogeneous owners: weak or strong response)
+    W: Dict[int, np.ndarray] = None  # early-departure random numbers (share, shift), drawn last
+
+    def actual_departure(self, j) -> int:
+        """Period in which the vehicle actually leaves at the latest; equals the declared departure unless early departures are on."""
+        q, dc = self.requests[j], self.sc.demand
+        sh = getattr(dc, 'early_share', 0.0)
+        if sh <= 0 or self.W is None or self.W[j][0] >= sh:
+            return q.d
+        hrs = dc.early_lo_h + self.W[j][1] * (dc.early_hi_h - dc.early_lo_h)
+        return max(q.r + 1, q.d - int(round(hrs / self.sc.station.tau)))
 
     def bc_of(self, j):
         """Behavior parameters followed by owner j: S1 or S3 by type if hetero_share > 0, otherwise the scenario parameters."""
@@ -219,7 +229,8 @@ def generate(sc: Scenario, seed: int) -> Instance:
     U = {q.j: rng.random((q.d - q.r, 4)) for q in reqs}
     V = {q.j: float(rng.random()) for q in reqs}     # drawn after U, so the earlier common random numbers are unchanged
     V2 = {q.j: float(rng.random()) for q in reqs}    # drawn after V
-    return Instance(sc, seed, reqs, B, PT, PV, pr, cN, U, V, V2)
+    W = {q.j: rng.random(2) for q in reqs}           # drawn last, so all earlier random numbers are unchanged
+    return Instance(sc, seed, reqs, B, PT, PV, pr, cN, U, V, V2, W)
 
 
 def generate_from(sc: Scenario, seed: int, raw) -> Instance:
@@ -238,4 +249,5 @@ def generate_from(sc: Scenario, seed: int, raw) -> Instance:
     U = {q.j: rng.random((q.d - q.r, 4)) for q in reqs}
     V = {q.j: float(rng.random()) for q in reqs}
     V2 = {q.j: float(rng.random()) for q in reqs}
-    return Instance(sc, seed, reqs, B, PT, PV, pr, cN, U, V, V2)
+    W = {q.j: rng.random(2) for q in reqs}
+    return Instance(sc, seed, reqs, B, PT, PV, pr, cN, U, V, V2, W)

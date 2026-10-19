@@ -169,17 +169,23 @@ class RH(Policy):
         st, bc, rc = sc.station, sc.behavior, sc.rule
         p = sc.solver.quantile_p
 
-        def lmaps(x):
+        buf = int(round(getattr(sc.solver, 'rh_dep_buffer_h', 0.0) / st.tau))
+
+        def dplan(x):   # planning departure: declared departure minus the safety margin, at least one period ahead
+            return x.d if buf <= 0 else max(min(x.d, t + 1), x.d - buf)
+
+        def lmaps(x, dd=None):
+            dd = dplan(x) if dd is None else dd
             L0, LF = {}, {}
-            for tt in range(max(t, getattr(x, 'start', t)), x.d):
-                L0[tt] = min(x.d, tt + bh.quantile_delay(tt, x.d, 0, p, st, bc, rc))
-                LF[tt] = min(x.d, tt + bh.quantile_delay(tt, x.d, 1, p, st, bc, rc))
+            for tt in range(max(t, getattr(x, 'start', t)), dd):
+                L0[tt] = min(dd, tt + bh.quantile_delay(tt, dd, 0, p, st, bc, rc))
+                LF[tt] = min(dd, tt + bh.quantile_delay(tt, dd, 1, p, st, bc, rc))
             return L0, LF
 
         vehs = []
         for j in sim.plugged:
             x = sim.v[j]
-            vw = VehWin(j, 'plugged', t, x.d, x.b, x.soc, x.socd, x.D, E_done=x.E,
+            vw = VehWin(j, 'plugged', t, dplan(x), x.b, x.soc, x.socd, x.D, E_done=x.E,
                         reminded=x.reminded)
             if x.reminded:
                 vw.R_fixed = est_release(sim, x, t)
@@ -188,12 +194,12 @@ class RH(Policy):
             vehs.append(vw)
         for j in sim.queue:
             x = sim.v[j]
-            vw = VehWin(j, 'queued', t, x.d, x.b, x.soc, x.socd, x.D,
+            vw = VehWin(j, 'queued', t, dplan(x), x.b, x.soc, x.socd, x.D,
                         wait_left=max(0, st.W_max - x.q_periods))
             vw.L0, vw.LF = lmaps(x)
             vehs.append(vw)
         for x in arrivals:
-            vw = VehWin(x.j, 'new', t, x.d, x.b, x.soc, x.socd, x.D, wait_left=st.W_max,
+            vw = VehWin(x.j, 'new', t, dplan(x), x.b, x.soc, x.socd, x.D, wait_left=st.W_max,
                         prio=getattr(x, 'prio', 0.0) * getattr(self, 'fair', 1.0))
             vw.L0, vw.LF = lmaps(x)
             vehs.append(vw)
@@ -204,9 +210,10 @@ class RH(Policy):
             for i, (r, d, b, D) in enumerate(pseudo_requests(sc, t)):
                 if D <= 1e-9:
                     continue
-                vw = VehWin(-1 - i, 'pseudo', r, d, b, sc.demand.socd - D / b, sc.demand.socd, D,
+                d2 = d if buf <= 0 else max(r + 1, d - buf)
+                vw = VehWin(-1 - i, 'pseudo', r, d2, b, sc.demand.socd - D / b, sc.demand.socd, D,
                             wait_left=st.W_max, weight=sc.solver.forecast_weight)
-                vw.L0, vw.LF = lmaps(vw)
+                vw.L0, vw.LF = lmaps(vw, d2)
                 vehs.append(vw)
         t_end = max(v.d for v in vehs)
         cap, PV = {}, {}
@@ -479,7 +486,24 @@ class B0Q(B0):
         return cand, rem
 
 
-POLICIES = {'B0': B0, 'B0-TOU': B0T, 'B0-NR': B0N, 'B0-TOU+': B0TP, 'B0-Q': B0Q, 'B1': B1, 'RH': RH, 'RH-N': RHN, 'RH-TB': RHTB, 'RH-MS': RHMS, 'RH-F': RHF}
+class RHA(RH):
+    """RH with first-come, first-served admission: every request that fits is accepted, while charging and reminders are optimized (Section 6.6)."""
+    name = 'RH-A'
+
+    def _solve(self, sim, t, arrivals):
+        old = getattr(sim.sc.solver, 'rh_accept_bonus', 0.0)
+        sim.sc.solver.rh_accept_bonus = 1000.0
+        try:
+            super()._solve(sim, t, arrivals)
+        finally:
+            sim.sc.solver.rh_accept_bonus = old
+
+    def admit(self, sim, t, arrivals):
+        self._solve(sim, t, arrivals)
+        return {x.j for x in arrivals}          # rejected by the simulator only when the waiting area is full
+
+
+POLICIES = {'B0': B0, 'B0-TOU': B0T, 'B0-NR': B0N, 'B0-TOU+': B0TP, 'B0-Q': B0Q, 'RH-A': RHA, 'B1': B1, 'RH': RH, 'RH-N': RHN, 'RH-TB': RHTB, 'RH-MS': RHMS, 'RH-F': RHF}
 
 
 def make_policy(name, **kw):
